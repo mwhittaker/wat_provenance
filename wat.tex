@@ -152,8 +152,12 @@ Note that
     how-provenance.
 \end{itemize}
 
-It can be shown that we can evaluate the how-provenance polynomial for a query
-$Q$ to simulate evaluating $Q$ under a different semiring.
+Given an assignment $v: TupleId \to K$ from tuple ids to elements of another
+semiring $K$, evaluating the how-provenance polynomial for a query $Q$ (after
+substituting $v(x)$ for $x$) simulates evaluating $Q$ under $K$. For example,
+given a how-provenance polynomial, we can use $v(x) = \top$ for relational
+algebra, $v(x) = 1$ for bag algebra, $v(x) = \set{x}$ for lineage, and $v(x) =
+\set{\set{x}}$ for why-provenance.
 
 \section{Datalog Provenance}
 - Provenance graphs for monotone datalog.
