@@ -5,6 +5,13 @@
 
 \usepackage{pervasives}
 \usepackage{subcaption}
+\usepackage{tikz}
+
+\usetikzlibrary{shapes}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{shapes.multipart}
+
+
 
 \begin{document}
 \maketitle
@@ -174,6 +181,115 @@ properties
 ''
 
 \section{Dedalus Provenance}
+\begin{verbatim}
+  # EDB to IDB
+  r1: kvs_pos(K, V)                   :- kvs(K, V)
+  r2: set_req_pos(DST, SRC, ID, K, V) :- set_req(DST, SRC, ID, K, V)
+  r3: set_resp_pos(DST, ID)           :- set_resp(DST, ID)
+  r4: get_req_pos(DST, SRC, ID, K)    :- get_req(DST, SRC, ID, K)
+  r5: get_resp_pos(DST, ID, V)        :- get_resp(DST, ID, V)
+
+  # Persist KVS
+  r6: kvs_pos(K, V)@next :- kvs_pos(K, V), !kvs_neg(K, V)
+
+  # Rules
+  r7:  get_resp_pos(SRC, ID, V)@async :- kvs_pos(K, V), get_req_pos(_, SRC, ID, K)
+  r8:  kvs_neg(K, V)                  :- kvs_pos(K, V), set_req_pos(_, _, _, K, _)
+  r9:  kvs_pos(K, V)@next             :- set_req_pos(_, _, _, K, V)
+  r10: set_resp_pos(SRC, ID)@async    :- set_req_pos(_, SRC, ID, _, _)
+\end{verbatim}
+
+\begin{verbatim}
+  # EDB
+  set_req(s, c, 0, x, y)@0
+  get_req(s, c, 1, x)@1
+\end{verbatim}
+
+\tikzstyle{common}=[draw]
+\tikzstyle{t}=[common,rectangle split, rectangle split parts=2,align=center]
+\tikzstyle{neg}=[fill=red!20]
+\tikzstyle{r}=[common, ellipse]
+\tikzstyle{label}=[inner sep=0, circle, fill=white]
+
+\begin{figure}[h]
+  \centering
+  \footnotesize
+  \begin{tikzpicture}[xscale=2.5, yscale=1.5]
+    \node[t] (t1) at (0, 10) {
+      \texttt{set\_req@0}
+      \nodepart{second}
+      \texttt{(s,c,0,x,y)}
+    };
+    \node[label] (t1label) at (t1.north west) {$t_1$};
+
+    \node[t] (t2) at (2, 10) {
+      \texttt{set\_req\_pos@0}
+      \nodepart{second}
+      \texttt{(s,c,0,x,y)}
+    };
+    \node[label] (t2label) at (t2.north west) {$t_2$};
+
+    \node[t] (t3) at (0, 9) {
+      \texttt{set\_resp\_pos@async}
+      \nodepart{second}
+      \texttt{(c,0)}
+    };
+    \node[label] (t3label) at (t3.north west) {$t_3$};
+
+    \node[r] () at (1, 10) {\texttt{r2}};
+    \node[r] () at (1, 9) {\texttt{r10}};
+    \node[r] () at (3, 10) {\texttt{r9}};
+
+    \draw[decorate, decoration=snake] (-1, 8.5) -- (5, 8.5);
+
+    \node[t] () at (3, 8) {
+      \texttt{kvs\_pos@1}
+      \nodepart{second}
+      \texttt{(x,y)}
+    };
+    \node[t] () at (0, 8) {
+      \texttt{get\_req@1}
+      \nodepart{second}
+      \texttt{(s,c,0,x)}
+    };
+    \node[r] () at (1, 8) {\texttt{r4}};
+    \node[t] () at (2, 8) {
+      \texttt{get\_req\_pos@1}
+      \nodepart{second}
+      \texttt{(s,c,0,x)@0}
+    };
+    \node[r] () at (1, 7) {\texttt{r7}};
+    \node[t] () at (0, 7) {
+      \texttt{get\_req\_resp@async}
+      \nodepart{second}
+      \texttt{(s,i,x,y)}
+    };
+    \node[t, neg] () at (4, 8) {
+      \texttt{kvs\_neg@1}
+      \nodepart{second}
+      \texttt{(x,y)}
+    };
+    \node[r] () at (3, 7) {\texttt{r6}};
+
+    \draw[decorate, decoration=snake] (-1, 6.5) -- (5, 6.5);
+
+    \node[t] () at (3, 6) {
+      \texttt{kvs\_pos@2}
+      \nodepart{second}
+      \texttt{(x,y)}
+    };
+  \end{tikzpicture}
+  \caption{}
+  \label{}
+\end{figure}
+
+\begin{verbatim}
+  # EDB
+  set_req(s, c, 0, x, y)@0
+  set_req(s, c, 0, x, z)@1
+  get_req(s, c, 1, x)@2
+\end{verbatim}
+
 - Provenance for Dedalus programs. EDB represents network requests.
 
 \section{Network Provenance}
