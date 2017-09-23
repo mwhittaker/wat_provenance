@@ -1,0 +1,49 @@
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{stmaryrd}
+
+% Theorems, Lemmas, Claims, etc.
+\newtheorem{claim}{Claim}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+
+% References.
+\newcommand{\appref}[1]{Appendix~\ref{app:#1}}
+\newcommand{\clmref}[1]{Claim~\ref{clm:#1}}
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\lemref}[1]{Lemma~\ref{lem:#1}}
+\newcommand{\lstref}[1]{Listing~\ref{lst:#1}}
+\newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\thmref}[1]{Theorem~\ref{thm:#1}}
+
+% Surrounding symbols
+\DeclarePairedDelimiter{\set}{\{}{\}}
+\DeclarePairedDelimiterX{\setst}[2]{\{}{\}}{#1 \,\delimsize|\, #2}
+\DeclarePairedDelimiter{\parens}{(}{)}
+\DeclarePairedDelimiter{\denote}{\llbracket}{\rrbracket}
+
+% Symbols
+\newcommand{\nats}{\mathbb{N}}
+\newcommand{\ints}{\mathbb{Z}}
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\rats}{\mathbb{Q}}
+
+\newcommand{\defeq}{\triangleq}
+
+\newcommand{\select}{\sigma}
+\newcommand{\project}{\pi}
+\newcommand{\join}{\bowtie}
+\newcommand{\rename}{\rho}
+
+\newcommand{\Lineage}{\textsf{Lin}}
+\newcommand{\Wit}{\textsf{Wit}}
+\newcommand{\MWit}{\textsf{MWit}}
+\newcommand{\Why}{\textsf{Why}}
+\newcommand{\MWhy}{\textsf{MWhy}}
+\newcommand{\How}{\textsf{How}}
+

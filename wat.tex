@@ -1,0 +1,181 @@
+\documentclass{mwhittaker}
+\title{Wat-Provenance}
+\author{~}
+\date{~}
+
+\usepackage{pervasives}
+\usepackage{subcaption}
+
+\begin{document}
+\maketitle
+
+\section{Relational Algebra Provenance}
+\begin{figure}[h]
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \[
+      \begin{array}{rrl}
+        Q & ::= & \emptyset \\
+          &   | & \set{t} \\
+          &   | & R \\
+          &   | & \select_\phi(Q) \\
+          &   | & \project_A(Q) \\
+          &   | & Q_1 \join Q_2 \\
+          &   | & Q_1 \cup Q_2 \\
+          &   | & \rename_{A \mapsto B}(Q)
+      \end{array}
+    \]
+    \caption{Relational algebra syntax}
+    \label{fig:ra-syntax}
+  \end{subfigure}
+  \begin{subfigure}[b]{0.5\textwidth}
+    \centering
+    \[
+      \begin{aligned}
+        \denote{\emptyset}(I) &= \emptyset \\
+        \denote{\set{t}}(I) &= \set{t} \\
+        \denote{R}(I) &= I(R) \\
+        \denote{\select_\phi(Q)}(I) &= \setst{t \in \denote{Q}(I)}{\phi(t)} \\
+        \denote{\project_A(Q)}(I) &= \setst{t[A]}{t \in \denote{Q}(I)} \\
+        \denote{Q_1 \join Q_2}(I) &= \setst{t}{t[A_1] \in \denote{Q_1}(I) \land t[A_2] \in \denote{Q_2}(I)} \\
+        \denote{Q_1 \cup Q_2}(I) &= \denote{Q_1}(I) \cup \denote{Q_2}(I) \\
+        \denote{\rename_{A \mapsto B}(Q)}(I) &= \setst{t[A \mapsto B]}{t \in \denote{Q}(I)}
+      \end{aligned}
+    \]
+    \caption{Relational algebra semantics}
+    \label{fig:ra-semantics}
+  \end{subfigure}
+\end{figure}
+
+\subsection{Lineage}
+\begin{align*}
+  \Lineage(\emptyset, I, t) &= \bot \\
+  \Lineage(\set{t}, I, u) &= \begin{cases}
+    \emptyset & t = u \\
+    \bot & t \neq u
+  \end{cases} \\
+  \Lineage(R, I, t) &= \begin{cases}
+    \set{t} & t \in I(R) \\
+    \bot & t \notin I(R)
+  \end{cases} \\
+  \Lineage(\select_\phi(Q), I, t) &= \begin{cases}
+    \Lineage(Q, I, t) & \phi(t) \\
+    \bot & \lnot \phi(t)
+  \end{cases} \\
+  \Lineage(\project_A(Q), I, t) &= \bigcup_L \setst{\Lineage(Q, I, u)}{u \in \denote{Q}(I), u[A] = t} \\
+  \Lineage(Q_1 \join Q_2, I, t) &= \Lineage(Q_1, I, t[A_1]) \cup_S \Lineage(Q_2, I, t[A_2]) \\
+  \Lineage(Q_1 \cup Q_2, I, t) &= \Lineage(Q_1, I, t) \cup_L \Lineage(Q_2, I, t) \\
+  \Lineage(\rename_{A \mapsto B}(Q), I, t) &= \Lineage(Q, I, t[B \mapsto A])
+\end{align*}
+
+\subsection{Why-Provenance}
+\begin{align*}
+  \Why(\emptyset, I, t) &= \emptyset \\
+  \Why(\set{t}, I, u) &= \begin{cases}
+    \set{\emptyset} & t = u \\
+    \emptyset & t \neq u
+  \end{cases} \\
+  \Why(R, I, t) &= \begin{cases}
+    \set{\set{t}} & t \in I(R) \\
+    \emptyset & t \notin I(R) \\
+  \end{cases} \\
+  \Why(\select_\phi(Q), I, t) &= \begin{cases}
+    \Why(Q, I, t) & \phi() \\
+    \emptyset & \lnot \phi(t)
+  \end{cases} \\
+  \Why(\project_A(Q), I, t) &= \bigcup \setst{\Why(Q, I, u)}{u \in \denote{Q}(I), u[A] = t} \\
+  \Why(Q_1 \join Q_2, I, t) &= \Why(Q_1, I, t[A_1]) \Cup \Why(Q_2, t, t[A_2]) \\
+  \Why(Q_1 \cup Q_2, I, t) &= \Why(Q_1, I, t) \cup \Why(Q_2, I, t) \\
+  \Why(\rename_{A \mapsto B}(Q), I, t) &= \Why(Q, I, t[B \mapsto A])
+\end{align*}
+
+Some definitions:
+\begin{align*}
+  \Wit(Q, I, t)
+    &\defeq \setst{J \subseteq I}{t \in \denote{Q}(J)} \\
+  \MWit(Q, I, t)
+    &\defeq \setst{J \in \Wit(Q, I, t)}{\text{$J$ is minimal in $\Wit(Q, I, t)$}} \\
+  \MWhy(Q, I, t)
+    &\defeq \setst{J \in \Why(Q, I, t)}{\text{$J$ is minimal in $\Why(Q, I, t)$}}
+\end{align*}
+
+Some theorems:
+\begin{align*}
+  \Wit(Q, I, t)
+    &= \setst{J \subseteq I}{\exists J' \in \Wit(Q, I, t).\ J' \subseteq J} \\
+  \MWhy(Q, I, t)
+    &= \MWit(Q, I, t)
+\end{align*}
+
+\subsection{How-Provenance}
+A \textbf{commutative semiring} is an algebraic structure $(K, +, \cdot, 0, 1)$
+where
+\begin{itemize}
+  \item $(K, +, 0)$ is a commutative monoid,
+  \item $(K, \cdot, 1)$ is a commutative monoid,
+  \item multiplication distributes over addition, and
+  \item 0 is an annihilator under multiplication.
+\end{itemize}
+
+Given a commutative semigroup $K$, a $K$-relation $R$ is a function from a
+domain of tuples to $K$. The $K$-relational algebra has the same syntax as the
+relational algebra and has following semantics:
+\begin{align*}
+  \denote{\emptyset}(I)(t) &= 0 \\
+  \denote{\set{t}}(I)(u) &= \begin{cases}
+    1 & t = u \\
+    0 & t \neq u
+  \end{cases} \\
+  \denote{R}(I)(t) &= I(R)(t) \\
+  \denote{\select_\phi(Q)}(I)(t) &= \phi(t) \cdot \denote{Q}(I)(t) \\
+  \denote{\project_A(Q)}(I)(t) &= \sum_{u, u[A] = t} \denote{Q}(I)(u)\\
+  \denote{Q_1 \join Q_2}(I)(t) &= \denote{Q_1}(I)(t[A_1]) \cdot \denote{Q_2}(I)(t[A_2]) \\
+  \denote{Q_1 \cup Q_2}(I)(t) &= \denote{Q_1}(I)(t) + \denote{Q_2}(I)(t) \\
+  \denote{\rename_{A \mapsto B}(Q)}(I)(t) &= \denote{Q}(I)(t[B \mapsto A])
+\end{align*}
+
+Note that
+\begin{itemize}
+  \item
+    the semiring $(\set{\bot, \top}, \lor, \land, \bot, \top)$ corresponds to
+    relational algebra,
+  \item
+    the semiring $(\nats, +, \times, 0, 1)$ corresponds to bag algebra,
+  \item
+    the semiring $(2^{TupleId}_\bot, \cup_L, \cup_S, \bot, \emptyset)$
+    corresponds to lineage,
+  \item
+    the semiring $(2^{2^{TupleId}}, \cup, \Cup, \emptyset, \set{\emptyset})$
+    corresponds to why-provenance, and
+  \item
+    the semiring $(\nats[TupleId], +, \times, 0, 1)$ corresponds to
+    how-provenance.
+\end{itemize}
+
+It can be shown that we can evaluate the how-provenance polynomial for a query
+$Q$ to simulate evaluating $Q$ under a different semiring.
+
+\section{Datalog Provenance}
+- Provenance graphs for monotone datalog.
+- Translating provenance graphs to how-provenance, why-provenance, and lineage.
+- Extending provenance and provenance graphs to datalog with negation and
+  aggregation.
+
+page 89
+``
+Both lineage and Trio lineage have been defined for non-monotone operations
+such as aggregation and negation operations. However, it is non-obvious how to
+extend these definitions to why- or how-provenance while preserving their nice
+properties
+''
+
+\section{Dedalus Provenance}
+- Provenance for Dedalus programs. EDB represents network requests.
+
+\section{Network Provenance}
+- Network provenance ala Boon.
+
+\section{Wat-Provenance}
+- Our new form of provenance.
+
+\end{document}
