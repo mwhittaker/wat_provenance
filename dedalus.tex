@@ -1,0 +1,166 @@
+\section{Dedalus Provenance}
+Consider the Dedalus implementation of a simple key-value store given in
+\figref{dedalus-kvs}. Clients send get requests over the \texttt{get\_req}
+``channel'' and send set requests over the \texttt{set\_req} ``channel''. We
+represent a tuple arriving on a channel as a direct insertion into the
+corresponding EDB predicate. For example, \texttt{get\_req(s,c,1,x)@1}
+represents the tuple \texttt{(s,c,1,x)} arriving on the \texttt{get\_req}
+channel at time \texttt{1}.
+
+\begin{figure}[h]
+  \centering
+  \begin{Verbatim}[gobble=4]
+    # EDB to IDB
+    r1: kvs_pos(K, V)                   :- kvs(K, V)
+    r2: set_req_pos(DST, SRC, ID, K, V) :- set_req(DST, SRC, ID, K, V)
+    r3: set_resp_pos(DST, ID)           :- set_resp(DST, ID)
+    r4: get_req_pos(DST, SRC, ID, K)    :- get_req(DST, SRC, ID, K)
+    r5: get_resp_pos(DST, ID, V)        :- get_resp(DST, ID, V)
+
+    # Persist KVS
+    r6: kvs_pos(K, V)@next :- kvs_pos(K, V), !kvs_neg(K, V)
+
+    # Rules
+    r7:  get_resp_pos(SRC, ID, V)@async :- kvs_pos(K, V), get_req_pos(_, SRC, ID, K)
+    r8:  kvs_neg(K, V)                  :- kvs_pos(K, V), set_req_pos(_, _, _, K, _)
+    r9:  kvs_pos(K, V)@next             :- set_req_pos(_, _, _, K, V)
+    r10: set_resp_pos(SRC, ID)@async    :- set_req_pos(_, SRC, ID, _, _)
+  \end{Verbatim}
+  \caption{Dedalus implementation of a simple key-value store.}
+  \label{fig:dedalus-kvs}
+\end{figure}
+
+\tikzstyle{common}=[draw, ultra thick]
+\tikzstyle{t}=[common, rectangle split, rectangle split parts=2, align=center]
+\tikzstyle{neg}=[fill=red!20]
+\tikzstyle{edb}=[fill=blue!20]
+\tikzstyle{r}=[common, ellipse]
+\tikzstyle{label}=[inner sep=0, circle, fill=white]
+\tikzstyle{dep}=[->, ultra thick]
+\tikzstyle{squiggle}=[decorate, decoration=snake, gray]
+\newcommand{\tnode}[2]{\texttt{#1} \nodepart{second} \texttt{#2}}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \begin{BVerbatim}
+      # EDB
+      set_req(s, c, 0, x, y)@0
+      get_req(s, c, 1, x)@1
+    \end{BVerbatim}
+    \caption{}
+    \label{fig:dedalus-setget-code}
+  \end{subfigure}
+
+  \vspace{0.2in}
+
+  \begin{subfigure}[b]{\textwidth}
+    \footnotesize
+    \begin{tikzpicture}[xscale=2.5, yscale=1.5]
+      % Layer 1
+      \node[t, edb] (t1) at (0, 10) {\tnode{set\_req@0}{(s,c,0,x,y)}};
+      \node[t] (t2) at (2, 10) {\tnode{set\_req\_pos@0}{(s,c,0,x,y)}};
+      \node[t] (t3) at (0, 9) {\tnode{set\_resp\_pos@async}{(c,0)}};
+      \node[r] (r1) at (1, 10) {\texttt{r2}};
+      \node[r] (r2) at (2, 9) {\texttt{r10}};
+      \node[r] (r3) at (3, 10) {\texttt{r9}};
+
+      \draw[squiggle] (-1, 8.5) -- (5, 8.5);
+
+      % Layer 2
+      \node[t] (t4) at (3, 8) {\tnode{kvs\_pos@1}{(x,y)}};
+      \node[t, edb] (t5) at (0, 8) {\tnode{get\_req@1}{(s,c,0,x)}};
+      \node[t] (t6) at (2, 8) {\tnode{get\_req\_pos@1}{(s,c,0,x)@0}};
+      \node[t] (t7) at (0, 7) {\tnode{get\_req\_resp@async}{(s,i,x,y)}};
+      \node[t, neg] (t8) at (4, 8) {\tnode{kvs\_neg@1}{(x,y)}};
+      \node[r] (r4) at (1, 8) {\texttt{r4}};
+      \node[r] (r5) at (2, 7) {\texttt{r7}};
+      \node[r] (r6) at (3, 7) {\texttt{r6}};
+
+      \draw[squiggle] (-1, 6.5) -- (5, 6.5);
+
+      % Layer 3
+      \node[t] (t9) at (3, 6) {\tnode{kvs\_pos@2}{(x,y)}};
+
+      % Labels
+      \foreach \x in {1, ..., 9} {
+        \node[label] (t{\x}label) at (t\x.north west) {$t_\x$};
+      }
+      \foreach \x in {1, ..., 6} {
+        \node[label] (r{\x}label) at (r\x.north west) {$r_\x$};
+      }
+
+      % Arrows
+      \foreach \src/\dst in {t1/r1, r1/t2, t2/r2, r2/t3, t2/r3, r3/t4, t5/r4,
+                             r4/t6, t6/r5, r5/t7, t4/r5, t4/r6, t8/r6, r6/t9} {
+        \draw[dep] (\src) to (\dst);
+      }
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:dedalus-setget-graph}
+  \end{subfigure}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \begin{subfigure}[b]{\textwidth}
+    \centering
+    \begin{BVerbatim}
+      # EDB
+      set_req(s, c, 0, x, y)@0
+      set_req(s, c, 0, x, z)@1
+      get_req(s, c, 1, x)@2
+    \end{BVerbatim}
+    \caption{}
+    \label{fig:dedalus-setsetget-code}
+  \end{subfigure}
+
+  \vspace{0.2in}
+
+  \begin{subfigure}[b]{\textwidth}
+    \footnotesize
+    \begin{tikzpicture}[xscale=2.5, yscale=1.5]
+      % Layer 1
+      \node[t, edb] (t1) at (0, 10) {\tnode{set\_req@0}{(s,c,0,x,y)}};
+      \node[t] (t2) at (2, 10) {\tnode{set\_req\_pos@0}{(s,c,0,x,y)}};
+      \node[t] (t3) at (0, 9) {\tnode{set\_resp\_pos@async}{(c,0)}};
+      \node[r] (r1) at (1, 10) {\texttt{r2}};
+      \node[r] (r2) at (2, 9) {\texttt{r10}};
+      \node[r] (r3) at (3, 10) {\texttt{r9}};
+
+      \draw[squiggle] (-1, 8.5) -- (5, 8.5);
+
+      % Layer 2
+      \node[t] (t4) at (3, 8) {\tnode{kvs\_pos@1}{(x,y)}};
+      \node[t, edb] (t5) at (0, 8) {\tnode{get\_req@1}{(s,c,0,x)}};
+      \node[t] (t6) at (2, 8) {\tnode{get\_req\_pos@1}{(s,c,0,x)@0}};
+      \node[t] (t7) at (0, 7) {\tnode{get\_req\_resp@async}{(s,i,x,y)}};
+      \node[t, neg] (t8) at (4, 8) {\tnode{kvs\_neg@1}{(x,y)}};
+      \node[r] (r4) at (1, 8) {\texttt{r4}};
+      \node[r] (r5) at (2, 7) {\texttt{r7}};
+      \node[r] (r6) at (3, 7) {\texttt{r6}};
+
+      \draw[squiggle] (-1, 6.5) -- (5, 6.5);
+
+      % Layer 3
+      \node[t] (t9) at (3, 6) {\tnode{kvs\_pos@2}{(x,y)}};
+
+      % Labels
+      \foreach \x in {1, ..., 9} {
+        \node[label] (t{\x}label) at (t\x.north west) {$t_\x$};
+      }
+      \foreach \x in {1, ..., 6} {
+        \node[label] (r{\x}label) at (r\x.north west) {$r_\x$};
+      }
+
+      % Arrows
+      \foreach \src/\dst in {t1/r1, r1/t2, t2/r2, r2/t3, t2/r3, r3/t4, t5/r4,
+                             r4/t6, t6/r5, r5/t7, t4/r5, t4/r6, t8/r6, r6/t9} {
+        \draw[dep] (\src) to (\dst);
+      }
+    \end{tikzpicture}
+    \caption{}
+    \label{fig:dedalus-setsetget-code}
+  \end{subfigure}
+\end{figure}
