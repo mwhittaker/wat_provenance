@@ -1,0 +1,76 @@
+\section{Wat Provenance}
+\newcommand{\Wat}[1]{\textsf{Wat}$(#1)$}
+
+Let $M = (S, s_0, \Sigma, \Lambda, \delta, \epsilon)$ be a (possibly
+infinite) deterministic state machine where
+  $S$ is a set of states;
+  $s_0 \in S$ is a start state;
+  $\Sigma$ is an input alphabet;
+  $\Lambda$ is an output alphabet;
+  $\delta: S \times \Sigma \to S$ is a transition function; and
+  $\epsilon: S \times \Sigma \to \Lambda$ is an output function.
+%
+Let $x \in \Sigma^*$ be a non-empty input string, and let $\epsilon^*(s, x) \in
+\Lambda$ be the output produced by $M$ after executing $x$ from state $s$.
+That is,
+\begin{align*}
+  \epsilon^*(s, a)  &= \epsilon(s, a) \\
+  \epsilon^*(s, ax) &= \epsilon^*(\delta(s, a), x)
+\end{align*}
+
+Order elements of $\Sigma^*$ by subsequence so that $x \leq y$ if $x$ is a
+subsequence of $y$. Similarly, $x \geq y$ if $x$ is a supersequence of $y$.
+Let $x \in \Sigma^*$ and let $a \in \Sigma$. We say that a $y \leq x$ is a
+witness for $a$ if for every $z \geq y$, $\epsilon^*(s_0, za) = \epsilon^*(s_0,
+xa)$. The Wat provenance of $a$ with respect to $M$ and $x$, abbreviated
+\Wat{M, x, a}, is the set of minimal latest witnesses of $a$.
+
+TODO: Define latest formally. It's actually not a nice thing to do.
+
+Wat provenance is always not empty because the set of witnesses is non-empty
+because $x$ is a witness.
+
+
+
+
+Intro
+  debugging distributed systems is hard
+  theres a lack of formalism around figuring out why a particular event happened
+  causaility tells us all the possible things that could have caused something
+  data lineage can tell us why but it lacks a component of time and is specific to relation databases
+  in this paper, we combine the benefits of both and invent wat-provenance, provenance for state machines over time
+  we present two ways to get the wat provenance of an arbitrary black box
+  white box: the first is to write it in a programming language for which we can automatically get the provenance; we also get network proveance from this
+  black box: the second is to specify the provenance . for a lot of black boxes, this is actually quite simple
+  we show that this approach of combining white and black box approaches is great for debugging heterogenous distributed systems
+    - impl
+  eval
+    - case study comparing our approach to other approaches
+    - performance overheards of our thing
+      - shim overhead
+      - storage overhead (cite future work)
+
+
+Background
+  - causality and happens before
+  - why provenance and lineage
+Wat-Provenance
+  - motivation and definition
+  - subsumption of why provenance
+White Box Wat-Provenance
+  - monotone fragment of a language
+  - connection to network prov
+Black Box Wat-Provenance
+  - rational
+  - lots of examples
+    - google cloud vision
+    - redis
+    - s3
+    - zookeeper
+  - limitations
+    - buggy black boxes
+    - nondeterminstic black boxes
+    - rich api black boxes
+Application to Heterogenous Distributed Systems
+  - description of partially ordered wat and how we can do our best guess
+Evaluation
